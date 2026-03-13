@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 이미지 프롬프트 생성기</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0f0f1a;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #a78bfa, #60a5fa, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 36px;
+            font-size: 0.95rem;
+        }
+
+        /* Input Section */
+        .input-section {
+            background: #1a1a2e;
+            border-radius: 16px;
+            padding: 28px;
+            margin-bottom: 32px;
+            border: 1px solid #2a2a4a;
+        }
+
+        .input-section label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 12px;
+            font-size: 1.05rem;
+            color: #c4b5fd;
+        }
+
+        .input-section textarea {
+            width: 100%;
+            min-height: 140px;
+            background: #12121f;
+            border: 1px solid #3a3a5a;
+            border-radius: 10px;
+            padding: 16px;
+            color: #e0e0e0;
+            font-size: 1rem;
+            line-height: 1.6;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+
+        .input-section textarea:focus {
+            outline: none;
+            border-color: #a78bfa;
+        }
+
+        .input-section textarea::placeholder {
+            color: #555;
+        }
+
+        /* Options */
+        .options-row {
+            display: flex;
+            gap: 16px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+
+        .option-group {
+            flex: 1;
+            min-width: 180px;
+        }
+
+        .option-group label {
+            font-size: 0.85rem;
+            color: #999;
+            margin-bottom: 6px;
+        }
+
+        .option-group select {
+            width: 100%;
+            background: #12121f;
+            border: 1px solid #3a3a5a;
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: #e0e0e0;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .option-group select:focus {
+            outline: none;
+            border-color: #a78bfa;
+        }
+
+        /* Generate Button */
+        .generate-btn {
+            display: block;
+            width: 100%;
+            margin-top: 20px;
+            padding: 14px;
+            background: linear-gradient(135deg, #7c3aed, #3b82f6);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+
+        .generate-btn:hover { opacity: 0.9; }
+        .generate-btn:active { transform: scale(0.98); }
+        .generate-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .generate-btn .spinner {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Button Row */
+        .btn-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .btn-row .generate-btn {
+            flex: 1;
+            margin-top: 0;
+        }
+
+        .refresh-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            background: #2a2a4a;
+            border: 1px solid #3a3a5a;
+            border-radius: 10px;
+            color: #e0e0e0;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .refresh-btn:hover {
+            background: #ef4444;
+            border-color: #ef4444;
+            color: white;
+        }
+
+        .refresh-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Accumulated description display */
+        .accumulated-desc {
+            margin-top: 16px;
+            padding: 14px;
+            background: #12121f;
+            border: 1px solid #3a3a5a;
+            border-radius: 10px;
+        }
+
+        .accumulated-desc label {
+            font-size: 0.8rem !important;
+            color: #888 !important;
+            margin-bottom: 8px !important;
+        }
+
+        .acc-text {
+            font-size: 0.88rem;
+            color: #a78bfa;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        /* Results - 1x3 horizontal grid */
+        .results { display: none; }
+        .results.visible {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .prompt-card {
+            background: #1a1a2e;
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid #2a2a4a;
+            position: relative;
+            transition: border-color 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .prompt-card:hover {
+            border-color: #4a4a6a;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+            flex-shrink: 0;
+        }
+
+        .platform-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.82rem;
+            white-space: nowrap;
+        }
+
+        .platform-badge.nanobanana {
+            background: rgba(251, 191, 36, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+
+        .platform-badge.chatgpt {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .platform-badge.midjourney {
+            background: rgba(139, 92, 246, 0.15);
+            color: #a78bfa;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+
+        .copy-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            background: #2a2a4a;
+            border: 1px solid #3a3a5a;
+            border-radius: 8px;
+            color: #e0e0e0;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .copy-btn:hover {
+            background: #3a3a5a;
+        }
+
+        .copy-btn.copied {
+            background: rgba(16, 185, 129, 0.2);
+            border-color: #34d399;
+            color: #34d399;
+        }
+
+        .prompt-text {
+            background: #12121f;
+            border-radius: 10px;
+            padding: 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            color: #d0d0d0;
+            white-space: pre-wrap;
+            word-break: break-word;
+            border: 1px solid #2a2a3a;
+            flex: 1;
+            min-height: 160px;
+        }
+
+        .platform-tip {
+            margin-top: 10px;
+            font-size: 0.78rem;
+            color: #666;
+            font-style: italic;
+            flex-shrink: 0;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: #34d399;
+            color: #0f0f1a;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Responsive: stack vertically on small screens */
+        @media (max-width: 900px) {
+            .results.visible {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .container { padding: 20px 12px; }
+            h1 { font-size: 1.5rem; }
+            .options-row { flex-direction: column; gap: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Image Prompt Generator</h1>
+        <p class="subtitle">이미지 설명을 한글로 입력하면 영어 프롬프트를 각 AI 플랫폼에 맞게 생성합니다</p>
+
+        <div class="input-section">
+            <label for="description">이미지 설명 (한글로 입력)</label>
+            <textarea id="description" placeholder="원하는 이미지를 자세히 설명해주세요.&#10;&#10;예시: 해질녘 바다 위에 떠 있는 작은 나무 보트, 하늘은 주황색과 보라색 그라데이션, 잔잔한 파도 위에 빛 반사, 따뜻하고 평화로운 분위기"></textarea>
+
+            <div class="options-row">
+                <div class="option-group">
+                    <label for="style">스타일</label>
+                    <select id="style">
+                        <optgroup label="사진 / 실사">
+                            <option value="realistic">사실적 사진 (Photorealistic)</option>
+                            <option value="portrait_photo">인물 사진 (Portrait Photo)</option>
+                            <option value="macro_photo">접사 사진 (Macro Photo)</option>
+                            <option value="aerial_photo">항공 사진 (Aerial Photo)</option>
+                            <option value="product_photo">제품 사진 (Product Photo)</option>
+                        </optgroup>
+                        <optgroup label="디지털 아트">
+                            <option value="illustration">디지털 일러스트 (Digital Illustration)</option>
+                            <option value="concept_art">컨셉 아트 (Concept Art)</option>
+                            <option value="fantasy_art">판타지 아트 (Fantasy Art)</option>
+                            <option value="comic">만화 (Comic Book)</option>
+                            <option value="anime">애니메이션 (Anime)</option>
+                            <option value="chibi">치비 (Chibi)</option>
+                            <option value="vector">벡터 아트 (Vector Art)</option>
+                            <option value="flat_design">플랫 디자인 (Flat Design)</option>
+                            <option value="low_poly">로우폴리 (Low Poly)</option>
+                        </optgroup>
+                        <optgroup label="전통 미술">
+                            <option value="oil_painting">유화 (Oil Painting)</option>
+                            <option value="watercolor">수채화 (Watercolor)</option>
+                            <option value="acrylic">아크릴화 (Acrylic)</option>
+                            <option value="ink_wash">수묵화 (Ink Wash)</option>
+                            <option value="pencil_sketch">연필 스케치 (Pencil Sketch)</option>
+                            <option value="charcoal">목탄화 (Charcoal Drawing)</option>
+                            <option value="pastel">파스텔화 (Pastel)</option>
+                            <option value="gouache">과슈 (Gouache)</option>
+                        </optgroup>
+                        <optgroup label="3D / 렌더링">
+                            <option value="3d">3D 렌더링 (3D Render)</option>
+                            <option value="isometric">아이소메트릭 (Isometric)</option>
+                            <option value="clay_render">클레이 렌더 (Clay Render)</option>
+                            <option value="voxel">복셀 아트 (Voxel Art)</option>
+                        </optgroup>
+                        <optgroup label="특수 스타일">
+                            <option value="cinematic">시네마틱 (Cinematic)</option>
+                            <option value="pixel">픽셀아트 (Pixel Art)</option>
+                            <option value="retro">레트로 / 빈티지 (Retro)</option>
+                            <option value="synthwave">신스웨이브 (Synthwave)</option>
+                            <option value="cyberpunk">사이버펑크 (Cyberpunk)</option>
+                            <option value="steampunk">스팀펑크 (Steampunk)</option>
+                            <option value="stained_glass">스테인드글라스 (Stained Glass)</option>
+                            <option value="paper_cut">페이퍼컷 (Paper Cut)</option>
+                            <option value="sticker">스티커 (Sticker Design)</option>
+                            <option value="logo">로고 디자인 (Logo Design)</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <div class="option-group">
+                    <label for="mood">분위기</label>
+                    <select id="mood">
+                        <option value="none">선택 안함</option>
+                        <optgroup label="밝은 계열">
+                            <option value="warm">따뜻한 (Warm)</option>
+                            <option value="bright">밝은 (Bright)</option>
+                            <option value="cheerful">경쾌한 (Cheerful)</option>
+                            <option value="romantic">로맨틱 (Romantic)</option>
+                            <option value="cozy">포근한 (Cozy)</option>
+                            <option value="whimsical">감성적 (Whimsical)</option>
+                        </optgroup>
+                        <optgroup label="어두운 계열">
+                            <option value="dark">어두운 (Dark)</option>
+                            <option value="noir">느와르 (Film Noir)</option>
+                            <option value="horror">공포 (Horror)</option>
+                            <option value="melancholy">우울한 (Melancholy)</option>
+                            <option value="gloomy">음울한 (Gloomy)</option>
+                        </optgroup>
+                        <optgroup label="분위기 / 감성">
+                            <option value="dreamy">몽환적 (Dreamy)</option>
+                            <option value="mysterious">신비로운 (Mysterious)</option>
+                            <option value="dramatic">극적인 (Dramatic)</option>
+                            <option value="serene">고요한 (Serene)</option>
+                            <option value="epic">웅장한 (Epic)</option>
+                            <option value="nostalgic">향수적 (Nostalgic)</option>
+                            <option value="surreal">초현실적 (Surreal)</option>
+                            <option value="ethereal">천상의 (Ethereal)</option>
+                        </optgroup>
+                        <optgroup label="색감 / 톤">
+                            <option value="cold">차가운 (Cold Tones)</option>
+                            <option value="golden_hour">골든아워 (Golden Hour)</option>
+                            <option value="neon">네온 (Neon Glow)</option>
+                            <option value="muted">뮤트 톤 (Muted / Pastel)</option>
+                            <option value="monochrome">모노크롬 (Monochrome)</option>
+                            <option value="vibrant">비비드 (Vibrant)</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <div class="option-group">
+                    <label for="ratio">비율</label>
+                    <select id="ratio">
+                        <option value="1:1">1:1 (정사각형)</option>
+                        <option value="16:9">16:9 (와이드)</option>
+                        <option value="9:16">9:16 (세로)</option>
+                        <option value="4:3">4:3 (표준)</option>
+                        <option value="3:2">3:2 (사진)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="btn-row">
+                <button class="generate-btn" onclick="generatePrompts()">프롬프트 생성하기</button>
+                <button class="refresh-btn" onclick="resetAll()" title="전체 초기화">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                </button>
+            </div>
+            <div class="accumulated-desc" id="accumulatedDesc" style="display:none;">
+                <label>누적된 설명 (영어 번역)</label>
+                <div class="acc-text" id="accText"></div>
+            </div>
+        </div>
+
+        <div class="results" id="results">
+            <!-- NanoBanana -->
+            <div class="prompt-card">
+                <div class="card-header">
+                    <span class="platform-badge nanobanana">NanoBanana</span>
+                    <button class="copy-btn" onclick="copyPrompt('nano')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                        복사
+                    </button>
+                </div>
+                <div class="prompt-text" id="prompt-nano"></div>
+                <div class="platform-tip">나노바나나에 그대로 붙여넣기 하세요.</div>
+            </div>
+
+            <!-- ChatGPT -->
+            <div class="prompt-card">
+                <div class="card-header">
+                    <span class="platform-badge chatgpt">ChatGPT (DALL-E)</span>
+                    <button class="copy-btn" onclick="copyPrompt('chatgpt')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                        복사
+                    </button>
+                </div>
+                <div class="prompt-text" id="prompt-chatgpt"></div>
+                <div class="platform-tip">ChatGPT에 붙여넣기 하세요.</div>
+            </div>
+
+            <!-- Midjourney -->
+            <div class="prompt-card">
+                <div class="card-header">
+                    <span class="platform-badge midjourney">Midjourney</span>
+                    <button class="copy-btn" onclick="copyPrompt('midjourney')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                        복사
+                    </button>
+                </div>
+                <div class="prompt-text" id="prompt-midjourney"></div>
+                <div class="platform-tip">Discord /imagine 명령어에 붙여넣기 하세요.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">클립보드에 복사되었습니다!</div>
+
+    <script>
+        // --- Translation: MyMemory API (free, no key) ---
+        async function translateToEnglish(text) {
+            // If no Korean detected, return as-is
+            if (!/[가-힣]/.test(text)) return text;
+
+            try {
+                const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=ko|en`;
+                const res = await fetch(url);
+                const data = await res.json();
+                if (data.responseStatus === 200 && data.responseData.translatedText) {
+                    let translated = data.responseData.translatedText;
+                    // MyMemory sometimes returns all-caps for short texts
+                    if (translated === translated.toUpperCase() && translated.length > 10) {
+                        translated = translated.charAt(0).toUpperCase() + translated.slice(1).toLowerCase();
+                    }
+                    return translated;
+                }
+            } catch (e) {
+                console.warn('Translation API failed, using original text:', e);
+            }
+            return text;
+        }
+
+        const styleMap = {
+            // Photo / Realistic
+            realistic:     { en: 'photorealistic, ultra-realistic photography, DSLR', mj: 'photorealistic, photography, DSLR' },
+            portrait_photo:{ en: 'portrait photography, shallow depth of field, studio lighting', mj: 'portrait photography, shallow DOF, studio lighting' },
+            macro_photo:   { en: 'macro photography, extreme close-up, sharp detail, bokeh background', mj: 'macro photography, extreme close-up, bokeh' },
+            aerial_photo:  { en: 'aerial photography, drone shot, birds-eye view', mj: 'aerial photography, drone shot, birds-eye view' },
+            product_photo: { en: 'product photography, studio lighting, clean background, commercial', mj: 'product photography, studio lighting, clean background' },
+            // Digital Art
+            illustration:  { en: 'digital illustration, detailed artwork, vibrant', mj: 'digital illustration, detailed artwork' },
+            concept_art:   { en: 'concept art, digital painting, detailed environment design', mj: 'concept art, digital painting, matte painting' },
+            fantasy_art:   { en: 'fantasy art, epic, magical elements, detailed', mj: 'fantasy art, epic, magical, detailed' },
+            comic:         { en: 'comic book style, bold outlines, halftone dots, dynamic', mj: 'comic book art, bold outlines, halftone, dynamic' },
+            anime:         { en: 'anime style, cel-shaded, vibrant colors, detailed', mj: 'anime style, cel-shaded, vibrant' },
+            chibi:         { en: 'chibi style, cute, big head, small body, adorable', mj: 'chibi style, kawaii, big head, small body' },
+            vector:        { en: 'vector art, clean lines, flat colors, scalable design', mj: 'vector art, clean lines, flat colors, graphic design' },
+            flat_design:   { en: 'flat design, minimal, geometric shapes, clean colors', mj: 'flat design, minimal, geometric, clean' },
+            low_poly:      { en: 'low poly art, geometric, faceted, minimal polygons', mj: 'low poly art, geometric, faceted, minimal' },
+            // Traditional Art
+            oil_painting:  { en: 'oil painting, textured brushstrokes, classical fine art', mj: 'oil painting, impasto, classical art, gallery quality' },
+            watercolor:    { en: 'watercolor painting, soft edges, flowing colors, paper texture', mj: 'watercolor painting, soft washes, wet-on-wet' },
+            acrylic:       { en: 'acrylic painting, bold colors, textured canvas, expressive', mj: 'acrylic painting, bold colors, textured, expressive' },
+            ink_wash:      { en: 'ink wash painting, sumi-e, East Asian brush art, monochrome', mj: 'ink wash painting, sumi-e, East Asian brush, monochrome' },
+            pencil_sketch: { en: 'pencil sketch, graphite drawing, detailed shading, paper texture', mj: 'pencil sketch, graphite, detailed shading, paper texture' },
+            charcoal:      { en: 'charcoal drawing, dramatic contrast, smudged edges, raw texture', mj: 'charcoal drawing, dramatic contrast, smudged, raw' },
+            pastel:        { en: 'pastel drawing, soft colors, chalky texture, gentle blending', mj: 'pastel art, soft colors, chalky texture, gentle' },
+            gouache:       { en: 'gouache painting, matte finish, opaque colors, illustrative', mj: 'gouache painting, matte, opaque colors, illustrative' },
+            // 3D / Render
+            '3d':          { en: '3D render, octane render, highly detailed, ray tracing', mj: '3D render, octane render, C4D, ray tracing' },
+            isometric:     { en: 'isometric 3D, diorama, tilt-shift, miniature world', mj: 'isometric 3D, diorama, tilt-shift, miniature' },
+            clay_render:   { en: 'clay render, matte clay material, soft lighting, 3D sculpt', mj: 'clay render, matte material, soft lighting, sculpted' },
+            voxel:         { en: 'voxel art, 3D pixel blocks, Minecraft-style, colorful', mj: 'voxel art, 3D blocks, Minecraft-style, colorful' },
+            // Special Styles
+            cinematic:     { en: 'cinematic shot, film grain, anamorphic lens, dramatic lighting', mj: 'cinematic, film still, anamorphic, dramatic' },
+            pixel:         { en: 'pixel art, 16-bit, retro game style, sprite art', mj: 'pixel art, 16-bit, retro, sprite' },
+            retro:         { en: 'retro vintage, 1970s aesthetic, faded colors, film grain', mj: 'retro vintage, 70s aesthetic, faded, film grain' },
+            synthwave:     { en: 'synthwave, neon grid, retro-futuristic, 80s aesthetic, purple and cyan', mj: 'synthwave, neon grid, retro-futuristic, 80s, vaporwave' },
+            cyberpunk:     { en: 'cyberpunk, neon lights, futuristic city, rain-soaked streets, high-tech', mj: 'cyberpunk, neon, futuristic, rain-soaked, high-tech' },
+            steampunk:     { en: 'steampunk, Victorian era, brass gears, steam-powered, clockwork', mj: 'steampunk, Victorian, brass gears, steam-powered, clockwork' },
+            stained_glass: { en: 'stained glass art, translucent colored glass, lead lines, luminous', mj: 'stained glass, colored glass, lead lines, luminous, cathedral' },
+            paper_cut:     { en: 'paper cut art, layered paper, shadow depth, craft style', mj: 'paper cut art, layered paper, shadow depth, craft' },
+            sticker:       { en: 'sticker design, die-cut, white border, cute, flat illustration', mj: 'sticker design, die-cut, white border, cute, flat' },
+            logo:          { en: 'logo design, minimal, clean, iconic, professional, vector', mj: 'logo design, minimal, clean, iconic, professional' },
+        };
+
+        const moodMap = {
+            none: { en: '', mj: '' },
+            // Bright
+            warm:       { en: 'warm tones, golden light, cozy atmosphere', mj: 'warm tones, golden hour lighting' },
+            bright:     { en: 'bright, vibrant, well-lit, cheerful, high key', mj: 'bright, vibrant, high key lighting' },
+            cheerful:   { en: 'cheerful, playful, colorful, joyful energy, sunny', mj: 'cheerful, playful, colorful, joyful, sunny' },
+            romantic:   { en: 'romantic, soft pink tones, gentle light, love, delicate', mj: 'romantic, soft pink, gentle light, delicate, love' },
+            cozy:       { en: 'cozy, warm interior light, comfortable, hygge, intimate', mj: 'cozy, warm light, comfortable, hygge, intimate' },
+            whimsical:  { en: 'whimsical, enchanting, playful details, storybook charm', mj: 'whimsical, enchanting, playful, storybook' },
+            // Dark
+            dark:       { en: 'dark mood, moody lighting, deep shadows, low key', mj: 'dark, moody, low key lighting, shadows' },
+            noir:       { en: 'film noir, high contrast black and white, venetian blinds shadows, detective mood', mj: 'film noir, high contrast, black and white, shadows' },
+            horror:     { en: 'horror atmosphere, eerie, unsettling, dark fog, ominous', mj: 'horror, eerie, unsettling, dark fog, ominous' },
+            melancholy: { en: 'melancholy, somber, muted blue tones, quiet sadness, overcast', mj: 'melancholy, somber, muted blue, quiet sadness' },
+            gloomy:     { en: 'gloomy, overcast sky, grey tones, rain, subdued palette', mj: 'gloomy, overcast, grey tones, rain, subdued' },
+            // Mood / Emotion
+            dreamy:     { en: 'dreamy, ethereal, soft focus, hazy glow, pastel', mj: 'dreamy, ethereal, soft focus, hazy, pastel' },
+            mysterious: { en: 'mysterious, foggy, enigmatic, subtle lighting, hidden depths', mj: 'mysterious, foggy, enigmatic, subtle lighting' },
+            dramatic:   { en: 'dramatic lighting, high contrast, intense, chiaroscuro', mj: 'dramatic lighting, chiaroscuro, intense, bold' },
+            serene:     { en: 'serene, tranquil, peaceful, calm water, gentle breeze', mj: 'serene, tranquil, peaceful, calm, gentle' },
+            epic:       { en: 'epic, grand scale, majestic, awe-inspiring, cinematic wide', mj: 'epic, grand scale, majestic, awe-inspiring, wide angle' },
+            nostalgic:  { en: 'nostalgic, vintage warmth, faded colors, memory-like, soft grain', mj: 'nostalgic, vintage, faded colors, soft grain, memory' },
+            surreal:    { en: 'surreal, dreamlike distortion, impossible geometry, Salvador Dali inspired', mj: 'surreal, dreamlike, impossible geometry, Dali-esque' },
+            ethereal:   { en: 'ethereal, heavenly glow, translucent, otherworldly, divine light', mj: 'ethereal, heavenly glow, translucent, otherworldly, divine' },
+            // Color / Tone
+            cold:       { en: 'cool tones, blue palette, cold atmosphere, icy', mj: 'cool tones, blue palette, icy, cold' },
+            golden_hour:{ en: 'golden hour, warm sunset light, long shadows, amber glow', mj: 'golden hour, sunset light, long shadows, amber' },
+            neon:       { en: 'neon glow, electric colors, fluorescent lights, night city', mj: 'neon glow, electric colors, fluorescent, night' },
+            muted:      { en: 'muted tones, pastel palette, desaturated, soft and gentle', mj: 'muted tones, pastel, desaturated, soft' },
+            monochrome: { en: 'monochrome, single color palette, black and white, grayscale', mj: 'monochrome, black and white, grayscale' },
+            vibrant:    { en: 'vibrant colors, saturated, bold palette, eye-catching, vivid', mj: 'vibrant, saturated, bold colors, vivid' },
+        };
+
+        const ratioToMJ = {
+            '1:1': '--ar 1:1',
+            '16:9': '--ar 16:9',
+            '9:16': '--ar 9:16',
+            '4:3': '--ar 4:3',
+            '3:2': '--ar 3:2'
+        };
+
+        // Accumulated English descriptions (persists until refresh)
+        let accumulatedDescriptions = [];
+
+        async function generatePrompts() {
+            const rawDesc = document.getElementById('description').value.trim();
+            if (!rawDesc) {
+                alert('이미지 설명을 입력해주세요.');
+                return;
+            }
+
+            const btn = document.querySelector('.generate-btn');
+            const style = document.getElementById('style').value;
+            const mood = document.getElementById('mood').value;
+            const ratio = document.getElementById('ratio').value;
+
+            const styleInfo = styleMap[style];
+            const moodInfo = moodMap[mood];
+
+            // Show loading state
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>번역 및 생성 중...';
+
+            // Translate Korean → English via API
+            const translated = await translateToEnglish(rawDesc);
+
+            // Restore button
+            btn.disabled = false;
+            btn.textContent = '프롬프트 생성하기';
+
+            // Accumulate translated description
+            accumulatedDescriptions.push(translated);
+            const desc = accumulatedDescriptions.join(', ');
+
+            // Show accumulated description
+            const accEl = document.getElementById('accumulatedDesc');
+            const accTextEl = document.getElementById('accText');
+            accEl.style.display = 'block';
+            accTextEl.textContent = desc;
+
+            // Clear textarea for next input
+            document.getElementById('description').value = '';
+            document.getElementById('description').placeholder = '추가할 설명을 입력하세요. (이전 내용에 누적됩니다)';
+
+            // --- NanoBanana Prompt ---
+            let nanoParts = [desc];
+            nanoParts.push(styleInfo.en);
+            if (moodInfo.en) nanoParts.push(moodInfo.en);
+            nanoParts.push('high quality, detailed');
+            const nanoPrompt = nanoParts.join(', ');
+
+            // --- ChatGPT (DALL-E) Prompt ---
+            let chatgptLines = [];
+            chatgptLines.push(`Create an image of: ${desc}`);
+            chatgptLines.push('');
+            chatgptLines.push(`Style: ${styleInfo.en}`);
+            if (moodInfo.en) chatgptLines.push(`Mood: ${moodInfo.en}`);
+            chatgptLines.push(`Aspect ratio: ${ratio}`);
+            chatgptLines.push('');
+            chatgptLines.push('Make it highly detailed with professional quality. Ensure the composition is balanced and visually appealing.');
+            const chatgptPrompt = chatgptLines.join('\n');
+
+            // --- Midjourney Prompt ---
+            let mjParts = [desc];
+            mjParts.push(styleInfo.mj);
+            if (moodInfo.mj) mjParts.push(moodInfo.mj);
+            mjParts.push('highly detailed, masterpiece');
+            let mjPrompt = '/imagine prompt: ' + mjParts.join(', ');
+            mjPrompt += ` ${ratioToMJ[ratio]} --v 6 --q 2`;
+
+            // Display
+            document.getElementById('prompt-nano').textContent = nanoPrompt;
+            document.getElementById('prompt-chatgpt').textContent = chatgptPrompt;
+            document.getElementById('prompt-midjourney').textContent = mjPrompt;
+            document.getElementById('results').classList.add('visible');
+
+            // Scroll to results
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            // Reset copy buttons
+            document.querySelectorAll('.copy-btn').forEach(b => {
+                b.classList.remove('copied');
+                b.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> 복사`;
+            });
+        }
+
+        function resetAll() {
+            // Clear accumulated descriptions
+            accumulatedDescriptions = [];
+
+            // Clear textarea and restore placeholder
+            const textarea = document.getElementById('description');
+            textarea.value = '';
+            textarea.placeholder = '원하는 이미지를 자세히 설명해주세요.\n\n예시: 해질녘 바다 위에 떠 있는 작은 나무 보트, 하늘은 주황색과 보라색 그라데이션, 잔잔한 파도 위에 빛 반사, 따뜻하고 평화로운 분위기';
+
+            // Reset dropdowns
+            document.getElementById('style').value = 'realistic';
+            document.getElementById('mood').value = 'none';
+            document.getElementById('ratio').value = '1:1';
+
+            // Hide accumulated desc
+            document.getElementById('accumulatedDesc').style.display = 'none';
+            document.getElementById('accText').textContent = '';
+
+            // Hide results
+            document.getElementById('results').classList.remove('visible');
+            document.getElementById('prompt-nano').textContent = '';
+            document.getElementById('prompt-chatgpt').textContent = '';
+            document.getElementById('prompt-midjourney').textContent = '';
+
+            // Show toast
+            const toast = document.getElementById('toast');
+            toast.textContent = '초기화 완료!';
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+                toast.textContent = '클립보드에 복사되었습니다!';
+            }, 1500);
+
+            // Focus textarea
+            textarea.focus();
+        }
+
+        function copyPrompt(platform) {
+            const text = document.getElementById(`prompt-${platform}`).textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = event.currentTarget;
+                btn.classList.add('copied');
+                btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> 복사됨!`;
+
+                const toast = document.getElementById('toast');
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 2000);
+
+                setTimeout(() => {
+                    btn.classList.remove('copied');
+                    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> 복사`;
+                }, 3000);
+            });
+        }
+
+        // Allow Ctrl+Enter to generate
+        document.getElementById('description').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                generatePrompts();
+            }
+        });
+    </script>
+</body>
+</html>
