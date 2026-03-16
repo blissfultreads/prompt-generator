@@ -513,7 +513,7 @@
                     </button>
                 </div>
                 <div class="prompt-text" id="prompt-midjourney"></div>
-                <div class="platform-tip">Discord /imagine 명령어에 붙여넣기 하세요.</div>
+                <div class="platform-tip">Midjourney 웹사이트 프롬프트 창에 붙여넣기 하세요.</div>
             </div>
         </div>
     </div>
@@ -690,13 +690,13 @@
             chatgptLines.push('Make it highly detailed with professional quality. Ensure the composition is balanced and visually appealing.');
             const chatgptPrompt = chatgptLines.join('\n');
 
-            // --- Midjourney Prompt ---
+            // --- Midjourney Web Prompt ---
             let mjParts = [desc];
             mjParts.push(styleInfo.mj);
             if (moodInfo.mj) mjParts.push(moodInfo.mj);
             mjParts.push('highly detailed, masterpiece');
-            let mjPrompt = '/imagine prompt: ' + mjParts.join(', ');
-            mjPrompt += ` ${ratioToMJ[ratio]} --v 6 --q 2`;
+            let mjPrompt = mjParts.join(', ');
+            mjPrompt += ` ${ratioToMJ[ratio]} --q 2 --s 750`;
 
             // Display
             document.getElementById('prompt-nano').textContent = nanoPrompt;
