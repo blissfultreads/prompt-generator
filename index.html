@@ -213,7 +213,7 @@
         .results { display: none; }
         .results.visible {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(2, 1fr);
             gap: 20px;
         }
 
@@ -267,6 +267,12 @@
             background: rgba(139, 92, 246, 0.15);
             color: #a78bfa;
             border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+
+        .platform-badge.grok {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
         }
 
         .copy-btn {
@@ -513,7 +519,20 @@
                     </button>
                 </div>
                 <div class="prompt-text" id="prompt-midjourney"></div>
-                <div class="platform-tip">Midjourney 웹사이트 프롬프트 창에 붙여넣기 하세요.</div>
+                <div class="platform-tip">Discord /imagine 명령어에 붙여넣기 하세요.</div>
+            </div>
+
+            <!-- Grok -->
+            <div class="prompt-card">
+                <div class="card-header">
+                    <span class="platform-badge grok">Grok (Aurora)</span>
+                    <button class="copy-btn" onclick="copyPrompt('grok')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                        복사
+                    </button>
+                </div>
+                <div class="prompt-text" id="prompt-grok"></div>
+                <div class="platform-tip">Grok에 붙여넣기 하세요. (x.com/grok)</div>
             </div>
         </div>
     </div>
@@ -690,18 +709,30 @@
             chatgptLines.push('Make it highly detailed with professional quality. Ensure the composition is balanced and visually appealing.');
             const chatgptPrompt = chatgptLines.join('\n');
 
-            // --- Midjourney Web Prompt ---
+            // --- Midjourney Prompt ---
             let mjParts = [desc];
             mjParts.push(styleInfo.mj);
             if (moodInfo.mj) mjParts.push(moodInfo.mj);
             mjParts.push('highly detailed, masterpiece');
-            let mjPrompt = mjParts.join(', ');
-            mjPrompt += ` ${ratioToMJ[ratio]} --q 2 --s 750`;
+            let mjPrompt = '/imagine prompt: ' + mjParts.join(', ');
+            mjPrompt += ` ${ratioToMJ[ratio]} --v 6 --q 2`;
+
+            // --- Grok (Aurora) Prompt ---
+            let grokLines = [];
+            grokLines.push(`Generate an image: ${desc}`);
+            grokLines.push('');
+            grokLines.push(`Style: ${styleInfo.en}`);
+            if (moodInfo.en) grokLines.push(`Mood/Atmosphere: ${moodInfo.en}`);
+            grokLines.push(`Aspect ratio: ${ratio}`);
+            grokLines.push('');
+            grokLines.push('Ultra high quality, sharp details, professional composition. Make sure the image is visually stunning and cohesive.');
+            const grokPrompt = grokLines.join('\n');
 
             // Display
             document.getElementById('prompt-nano').textContent = nanoPrompt;
             document.getElementById('prompt-chatgpt').textContent = chatgptPrompt;
             document.getElementById('prompt-midjourney').textContent = mjPrompt;
+            document.getElementById('prompt-grok').textContent = grokPrompt;
             document.getElementById('results').classList.add('visible');
 
             // Scroll to results
@@ -737,6 +768,7 @@
             document.getElementById('prompt-nano').textContent = '';
             document.getElementById('prompt-chatgpt').textContent = '';
             document.getElementById('prompt-midjourney').textContent = '';
+            document.getElementById('prompt-grok').textContent = '';
 
             // Show toast
             const toast = document.getElementById('toast');
