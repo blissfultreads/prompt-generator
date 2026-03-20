@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 이미지 프롬프트 생성기</title>
+    <title>AI 프롬프트 생성기</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -34,6 +34,44 @@
             color: #888;
             margin-bottom: 36px;
             font-size: 0.95rem;
+        }
+
+        /* Type Selector */
+        .type-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .type-btn {
+            flex: 1;
+            padding: 12px 16px;
+            background: #12121f;
+            border: 2px solid #3a3a5a;
+            border-radius: 10px;
+            color: #888;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .type-btn:hover {
+            border-color: #5a5a7a;
+            color: #c0c0c0;
+        }
+
+        .type-btn.active {
+            border-color: #a78bfa;
+            color: #a78bfa;
+            background: rgba(167, 139, 250, 0.08);
+        }
+
+        .type-btn .type-icon {
+            display: block;
+            font-size: 1.3rem;
+            margin-bottom: 4px;
         }
 
         /* Input Section */
@@ -275,6 +313,33 @@
             border: 1px solid rgba(239, 68, 68, 0.3);
         }
 
+        .platform-badge.flow {
+            background: rgba(56, 189, 248, 0.15);
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+
+        .platform-badge.kling {
+            background: rgba(251, 146, 60, 0.15);
+            color: #fb923c;
+            border: 1px solid rgba(251, 146, 60, 0.3);
+        }
+
+        .platform-badge.suno {
+            background: rgba(232, 121, 249, 0.15);
+            color: #e879f9;
+            border: 1px solid rgba(232, 121, 249, 0.3);
+        }
+
+        .results-audio.visible {
+            display: block !important;
+        }
+
+        .results-audio .prompt-card {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
         .copy-btn {
             display: inline-flex;
             align-items: center;
@@ -360,14 +425,26 @@
 </head>
 <body>
     <div class="container">
-        <h1>AI Image Prompt Generator</h1>
-        <p class="subtitle">이미지 설명을 한글로 입력하면 영어 프롬프트를 각 AI 플랫폼에 맞게 생성합니다</p>
+        <h1>AI Prompt Generator</h1>
+        <p class="subtitle">설명을 한글로 입력하면 영어 프롬프트를 각 AI 플랫폼에 맞게 생성합니다</p>
 
         <div class="input-section">
-            <label for="description">이미지 설명 (한글로 입력)</label>
+            <div class="type-selector">
+                <button class="type-btn active" data-type="image" onclick="selectType('image')">
+                    <span class="type-icon">🖼</span>이미지
+                </button>
+                <button class="type-btn" data-type="video" onclick="selectType('video')">
+                    <span class="type-icon">🎬</span>비디오
+                </button>
+                <button class="type-btn" data-type="audio" onclick="selectType('audio')">
+                    <span class="type-icon">🎵</span>오디오
+                </button>
+            </div>
+            <label for="description" id="descLabel">이미지 설명 (한글로 입력)</label>
             <textarea id="description" placeholder="원하는 이미지를 자세히 설명해주세요.&#10;&#10;예시: 해질녘 바다 위에 떠 있는 작은 나무 보트, 하늘은 주황색과 보라색 그라데이션, 잔잔한 파도 위에 빛 반사, 따뜻하고 평화로운 분위기"></textarea>
 
-            <div class="options-row">
+            <!-- Image Options -->
+            <div class="options-row" id="options-image">
                 <div class="option-group">
                     <label for="style">스타일</label>
                     <select id="style">
@@ -470,6 +547,157 @@
                 </div>
             </div>
 
+            <!-- Video Options -->
+            <div class="options-row" id="options-video" style="display:none;">
+                <div class="option-group">
+                    <label for="vid-ratio">화면 비율</label>
+                    <select id="vid-ratio">
+                        <option value="16:9">16:9 (와이드)</option>
+                        <option value="9:16">9:16 (세로/숏폼)</option>
+                        <option value="1:1">1:1 (정사각형)</option>
+                        <option value="4:3">4:3 (표준)</option>
+                        <option value="21:9">21:9 (시네마스코프)</option>
+                    </select>
+                </div>
+                <div class="option-group">
+                    <label for="vid-quality">화질</label>
+                    <select id="vid-quality">
+                        <option value="4k">4K Ultra HD</option>
+                        <option value="1080p" selected>1080p Full HD</option>
+                        <option value="720p">720p HD</option>
+                    </select>
+                </div>
+                <div class="option-group">
+                    <label for="vid-mood">분위기</label>
+                    <select id="vid-mood">
+                        <option value="none">선택 안함</option>
+                        <option value="cinematic">시네마틱 (Cinematic)</option>
+                        <option value="documentary">다큐멘터리 (Documentary)</option>
+                        <option value="dreamy">몽환적 (Dreamy)</option>
+                        <option value="dramatic">극적인 (Dramatic)</option>
+                        <option value="peaceful">평화로운 (Peaceful)</option>
+                        <option value="energetic">역동적 (Energetic)</option>
+                        <option value="dark">어두운 (Dark)</option>
+                        <option value="romantic">로맨틱 (Romantic)</option>
+                        <option value="epic">웅장한 (Epic)</option>
+                        <option value="retro">레트로 (Retro)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Audio Options -->
+            <div class="options-row" id="options-audio" style="display:none;">
+                <div class="option-group">
+                    <label for="aud-genre">장르</label>
+                    <select id="aud-genre">
+                        <optgroup label="팝 / 메인스트림">
+                            <option value="pop">팝 (Pop)</option>
+                            <option value="kpop">케이팝 (K-Pop)</option>
+                            <option value="dance_pop">댄스 팝 (Dance Pop)</option>
+                            <option value="synth_pop">신스 팝 (Synth Pop)</option>
+                            <option value="indie_pop">인디 팝 (Indie Pop)</option>
+                            <option value="dream_pop">드림 팝 (Dream Pop)</option>
+                        </optgroup>
+                        <optgroup label="록 / 메탈">
+                            <option value="rock">록 (Rock)</option>
+                            <option value="alternative">얼터너티브 록 (Alternative Rock)</option>
+                            <option value="indie_rock">인디 록 (Indie Rock)</option>
+                            <option value="punk">펑크 (Punk Rock)</option>
+                            <option value="metal">메탈 (Heavy Metal)</option>
+                            <option value="progressive_rock">프로그레시브 록 (Progressive Rock)</option>
+                            <option value="grunge">그런지 (Grunge)</option>
+                            <option value="post_rock">포스트 록 (Post-Rock)</option>
+                        </optgroup>
+                        <optgroup label="힙합 / R&B">
+                            <option value="hiphop">힙합 (Hip-Hop)</option>
+                            <option value="trap">트랩 (Trap)</option>
+                            <option value="rnb">알앤비 (R&B)</option>
+                            <option value="neo_soul">네오 소울 (Neo Soul)</option>
+                            <option value="boom_bap">붐뱁 (Boom Bap)</option>
+                            <option value="lo_fi_hiphop">로파이 힙합 (Lo-Fi Hip-Hop)</option>
+                        </optgroup>
+                        <optgroup label="일렉트로닉 / EDM">
+                            <option value="edm">EDM</option>
+                            <option value="house">하우스 (House)</option>
+                            <option value="techno">테크노 (Techno)</option>
+                            <option value="trance">트랜스 (Trance)</option>
+                            <option value="dubstep">덥스텝 (Dubstep)</option>
+                            <option value="drum_and_bass">드럼앤베이스 (Drum & Bass)</option>
+                            <option value="ambient">앰비언트 (Ambient)</option>
+                            <option value="synthwave">신스웨이브 (Synthwave)</option>
+                            <option value="chillwave">칠웨이브 (Chillwave)</option>
+                            <option value="lo_fi">로파이 (Lo-Fi)</option>
+                        </optgroup>
+                        <optgroup label="재즈 / 블루스">
+                            <option value="jazz">재즈 (Jazz)</option>
+                            <option value="smooth_jazz">스무스 재즈 (Smooth Jazz)</option>
+                            <option value="bebop">비밥 (Bebop)</option>
+                            <option value="blues">블루스 (Blues)</option>
+                            <option value="soul">소울 (Soul)</option>
+                            <option value="funk">펑크 (Funk)</option>
+                        </optgroup>
+                        <optgroup label="클래식 / 오케스트라">
+                            <option value="classical">클래식 (Classical)</option>
+                            <option value="orchestral">오케스트라 (Orchestral)</option>
+                            <option value="chamber">실내악 (Chamber Music)</option>
+                            <option value="piano_solo">피아노 솔로 (Piano Solo)</option>
+                            <option value="cinematic_score">영화음악 (Cinematic Score)</option>
+                        </optgroup>
+                        <optgroup label="어쿠스틱 / 포크">
+                            <option value="acoustic">어쿠스틱 (Acoustic)</option>
+                            <option value="folk">포크 (Folk)</option>
+                            <option value="country">컨트리 (Country)</option>
+                            <option value="singer_songwriter">싱어송라이터 (Singer-Songwriter)</option>
+                            <option value="bossa_nova">보사노바 (Bossa Nova)</option>
+                        </optgroup>
+                        <optgroup label="월드 / 라틴">
+                            <option value="reggae">레게 (Reggae)</option>
+                            <option value="latin">라틴 (Latin)</option>
+                            <option value="afrobeat">아프로비트 (Afrobeat)</option>
+                            <option value="celtic">켈틱 (Celtic)</option>
+                            <option value="flamenco">플라멩코 (Flamenco)</option>
+                        </optgroup>
+                        <optgroup label="기타">
+                            <option value="gospel">가스펠 (Gospel)</option>
+                            <option value="reggaeton">레게톤 (Reggaeton)</option>
+                            <option value="ska">스카 (Ska)</option>
+                            <option value="new_age">뉴에이지 (New Age)</option>
+                            <option value="meditation">명상 음악 (Meditation)</option>
+                            <option value="game_ost">게임 OST (Game OST)</option>
+                            <option value="anime_ost">애니메이션 OST (Anime OST)</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <div class="option-group">
+                    <label for="aud-tempo">템포</label>
+                    <select id="aud-tempo">
+                        <option value="very_slow">매우 느림 (~60 BPM)</option>
+                        <option value="slow">느림 (~80 BPM)</option>
+                        <option value="medium" selected>보통 (~110 BPM)</option>
+                        <option value="fast">빠름 (~140 BPM)</option>
+                        <option value="very_fast">매우 빠름 (~170+ BPM)</option>
+                    </select>
+                </div>
+                <div class="option-group">
+                    <label for="aud-mood">분위기</label>
+                    <select id="aud-mood">
+                        <option value="none">선택 안함</option>
+                        <option value="happy">밝은 / 행복한</option>
+                        <option value="sad">슬픈 / 감성적</option>
+                        <option value="energetic">에너지 넘치는</option>
+                        <option value="chill">편안한 / 칠</option>
+                        <option value="dark">어두운 / 무거운</option>
+                        <option value="romantic">로맨틱한</option>
+                        <option value="epic">웅장한 / 장엄한</option>
+                        <option value="mysterious">신비로운</option>
+                        <option value="nostalgic">향수적 / 레트로</option>
+                        <option value="aggressive">공격적 / 강렬한</option>
+                        <option value="dreamy">몽환적</option>
+                        <option value="uplifting">희망적 / 고양된</option>
+                    </select>
+                </div>
+            </div>
+
             <div class="btn-row">
                 <button class="generate-btn" onclick="generatePrompts()">프롬프트 생성하기</button>
                 <button class="refresh-btn" onclick="resetAll()" title="전체 초기화">
@@ -482,57 +710,79 @@
             </div>
         </div>
 
-        <div class="results" id="results">
-            <!-- NanoBanana -->
+        <!-- Image Results -->
+        <div class="results" id="results-image">
             <div class="prompt-card">
                 <div class="card-header">
                     <span class="platform-badge nanobanana">NanoBanana</span>
-                    <button class="copy-btn" onclick="copyPrompt('nano')">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-                        복사
-                    </button>
+                    <button class="copy-btn" onclick="copyPrompt('img-nano')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> 복사</button>
                 </div>
-                <div class="prompt-text" id="prompt-nano"></div>
+                <div class="prompt-text" id="prompt-img-nano"></div>
                 <div class="platform-tip">나노바나나에 그대로 붙여넣기 하세요.</div>
             </div>
-
-            <!-- ChatGPT -->
             <div class="prompt-card">
                 <div class="card-header">
                     <span class="platform-badge chatgpt">ChatGPT (DALL-E)</span>
-                    <button class="copy-btn" onclick="copyPrompt('chatgpt')">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-                        복사
-                    </button>
+                    <button class="copy-btn" onclick="copyPrompt('img-chatgpt')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> 복사</button>
                 </div>
-                <div class="prompt-text" id="prompt-chatgpt"></div>
+                <div class="prompt-text" id="prompt-img-chatgpt"></div>
                 <div class="platform-tip">ChatGPT에 붙여넣기 하세요.</div>
             </div>
-
-            <!-- Midjourney -->
             <div class="prompt-card">
                 <div class="card-header">
                     <span class="platform-badge midjourney">Midjourney</span>
-                    <button class="copy-btn" onclick="copyPrompt('midjourney')">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-                        복사
-                    </button>
+                    <button class="copy-btn" onclick="copyPrompt('img-midjourney')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> 복사</button>
                 </div>
-                <div class="prompt-text" id="prompt-midjourney"></div>
+                <div class="prompt-text" id="prompt-img-midjourney"></div>
                 <div class="platform-tip">Discord /imagine 명령어에 붙여넣기 하세요.</div>
             </div>
-
-            <!-- Grok -->
             <div class="prompt-card">
                 <div class="card-header">
                     <span class="platform-badge grok">Grok (Aurora)</span>
-                    <button class="copy-btn" onclick="copyPrompt('grok')">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-                        복사
-                    </button>
+                    <button class="copy-btn" onclick="copyPrompt('img-grok')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> 복사</button>
                 </div>
-                <div class="prompt-text" id="prompt-grok"></div>
+                <div class="prompt-text" id="prompt-img-grok"></div>
                 <div class="platform-tip">Grok에 붙여넣기 하세요. (x.com/grok)</div>
+            </div>
+        </div>
+
+        <!-- Video Results -->
+        <div class="results" id="results-video">
+            <div class="prompt-card">
+                <div class="card-header">
+                    <span class="platform-badge flow">Flow</span>
+                    <button class="copy-btn" onclick="copyPrompt('vid-flow')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> 복사</button>
+                </div>
+                <div class="prompt-text" id="prompt-vid-flow"></div>
+                <div class="platform-tip">Flow에 붙여넣기 하세요.</div>
+            </div>
+            <div class="prompt-card">
+                <div class="card-header">
+                    <span class="platform-badge kling">Kling</span>
+                    <button class="copy-btn" onclick="copyPrompt('vid-kling')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> 복사</button>
+                </div>
+                <div class="prompt-text" id="prompt-vid-kling"></div>
+                <div class="platform-tip">Kling AI에 붙여넣기 하세요.</div>
+            </div>
+            <div class="prompt-card">
+                <div class="card-header">
+                    <span class="platform-badge grok">Grok</span>
+                    <button class="copy-btn" onclick="copyPrompt('vid-grok')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> 복사</button>
+                </div>
+                <div class="prompt-text" id="prompt-vid-grok"></div>
+                <div class="platform-tip">Grok에 붙여넣기 하세요. (x.com/grok)</div>
+            </div>
+        </div>
+
+        <!-- Audio Results -->
+        <div class="results results-audio" id="results-audio">
+            <div class="prompt-card">
+                <div class="card-header">
+                    <span class="platform-badge suno">SUNO</span>
+                    <button class="copy-btn" onclick="copyPrompt('aud-suno')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> 복사</button>
+                </div>
+                <div class="prompt-text" id="prompt-aud-suno"></div>
+                <div class="platform-tip">Suno AI에 붙여넣기 하세요. (suno.com)</div>
             </div>
         </div>
     </div>
@@ -650,11 +900,51 @@
 
         // Accumulated English descriptions (persists until refresh)
         let accumulatedDescriptions = [];
+        let currentType = 'image';
+
+        const typeConfig = {
+            image: {
+                label: '이미지 설명 (한글로 입력)',
+                placeholder: '원하는 이미지를 자세히 설명해주세요.\n\n예시: 해질녘 바다 위에 떠 있는 작은 나무 보트, 하늘은 주황색과 보라색 그라데이션, 잔잔한 파도 위에 빛 반사, 따뜻하고 평화로운 분위기',
+            },
+            video: {
+                label: '비디오 설명 (한글로 입력)',
+                placeholder: '원하는 비디오를 자세히 설명해주세요.\n\n예시: 해변을 걸어가는 여자의 뒷모습, 카메라가 천천히 따라감, 석양빛이 머리카락을 비추고, 파도 소리가 들림',
+            },
+            audio: {
+                label: '오디오 설명 (한글로 입력)',
+                placeholder: '원하는 오디오/음악을 자세히 설명해주세요.\n\n예시: 잔잔한 피아노 멜로디, 비 오는 날 카페에서 듣는 느낌, 약간의 재즈 요소, 편안하고 따뜻한 분위기',
+            }
+        };
+
+        function selectType(type) {
+            currentType = type;
+            document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector(`[data-type="${type}"]`).classList.add('active');
+
+            const config = typeConfig[type];
+            document.getElementById('descLabel').textContent = config.label;
+            const textarea = document.getElementById('description');
+            if (!textarea.value.trim()) {
+                textarea.placeholder = config.placeholder;
+            }
+
+            // Show/hide type-specific options
+            document.getElementById('options-image').style.display = type === 'image' ? 'flex' : 'none';
+            document.getElementById('options-video').style.display = type === 'video' ? 'flex' : 'none';
+            document.getElementById('options-audio').style.display = type === 'audio' ? 'flex' : 'none';
+
+            // Hide all results
+            document.getElementById('results-image').classList.remove('visible');
+            document.getElementById('results-video').classList.remove('visible');
+            document.getElementById('results-audio').classList.remove('visible');
+        }
 
         async function generatePrompts() {
             const rawDesc = document.getElementById('description').value.trim();
             if (!rawDesc) {
-                alert('이미지 설명을 입력해주세요.');
+                const typeNames = { image: '이미지', video: '비디오', audio: '오디오' };
+                alert(`${typeNames[currentType]} 설명을 입력해주세요.`);
                 return;
             }
 
@@ -691,58 +981,181 @@
             document.getElementById('description').value = '';
             document.getElementById('description').placeholder = '추가할 설명을 입력하세요. (이전 내용에 누적됩니다)';
 
-            // --- NanoBanana Prompt ---
-            let nanoParts = [desc];
-            nanoParts.push(styleInfo.en);
-            if (moodInfo.en) nanoParts.push(moodInfo.en);
-            nanoParts.push('high quality, detailed');
-            const nanoPrompt = nanoParts.join(', ');
-
-            // --- ChatGPT (DALL-E) Prompt ---
-            let chatgptLines = [];
-            chatgptLines.push(`Create an image of: ${desc}`);
-            chatgptLines.push('');
-            chatgptLines.push(`Style: ${styleInfo.en}`);
-            if (moodInfo.en) chatgptLines.push(`Mood: ${moodInfo.en}`);
-            chatgptLines.push(`Aspect ratio: ${ratio}`);
-            chatgptLines.push('');
-            chatgptLines.push('Make it highly detailed with professional quality. Ensure the composition is balanced and visually appealing.');
-            const chatgptPrompt = chatgptLines.join('\n');
-
-            // --- Midjourney Prompt ---
-            let mjParts = [desc];
-            mjParts.push(styleInfo.mj);
-            if (moodInfo.mj) mjParts.push(moodInfo.mj);
-            mjParts.push('highly detailed, masterpiece');
-            let mjPrompt = '/imagine prompt: ' + mjParts.join(', ');
-            mjPrompt += ` ${ratioToMJ[ratio]} --v 6 --q 2`;
-
-            // --- Grok (Aurora) Prompt ---
-            let grokLines = [];
-            grokLines.push(`Generate an image: ${desc}`);
-            grokLines.push('');
-            grokLines.push(`Style: ${styleInfo.en}`);
-            if (moodInfo.en) grokLines.push(`Mood/Atmosphere: ${moodInfo.en}`);
-            grokLines.push(`Aspect ratio: ${ratio}`);
-            grokLines.push('');
-            grokLines.push('Ultra high quality, sharp details, professional composition. Make sure the image is visually stunning and cohesive.');
-            const grokPrompt = grokLines.join('\n');
-
-            // Display
-            document.getElementById('prompt-nano').textContent = nanoPrompt;
-            document.getElementById('prompt-chatgpt').textContent = chatgptPrompt;
-            document.getElementById('prompt-midjourney').textContent = mjPrompt;
-            document.getElementById('prompt-grok').textContent = grokPrompt;
-            document.getElementById('results').classList.add('visible');
-
-            // Scroll to results
-            document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (currentType === 'image') {
+                generateImagePrompts(desc, styleInfo, moodInfo, ratio);
+                document.getElementById('results-image').classList.add('visible');
+                document.getElementById('results-image').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else if (currentType === 'video') {
+                generateVideoPrompts(desc);
+                document.getElementById('results-video').classList.add('visible');
+                document.getElementById('results-video').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else if (currentType === 'audio') {
+                generateAudioPrompts(desc);
+                document.getElementById('results-audio').classList.add('visible');
+                document.getElementById('results-audio').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
 
             // Reset copy buttons
             document.querySelectorAll('.copy-btn').forEach(b => {
                 b.classList.remove('copied');
                 b.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> 복사`;
             });
+        }
+
+        function generateImagePrompts(desc, styleInfo, moodInfo, ratio) {
+            let nanoParts = [desc, styleInfo.en];
+            if (moodInfo.en) nanoParts.push(moodInfo.en);
+            nanoParts.push('high quality, detailed');
+            document.getElementById('prompt-img-nano').textContent = nanoParts.join(', ');
+
+            let chatgptLines = [`Create an image of: ${desc}`, '', `Style: ${styleInfo.en}`];
+            if (moodInfo.en) chatgptLines.push(`Mood: ${moodInfo.en}`);
+            chatgptLines.push(`Aspect ratio: ${ratio}`, '', 'Make it highly detailed with professional quality. Ensure the composition is balanced and visually appealing.');
+            document.getElementById('prompt-img-chatgpt').textContent = chatgptLines.join('\n');
+
+            let mjParts = [desc, styleInfo.mj];
+            if (moodInfo.mj) mjParts.push(moodInfo.mj);
+            mjParts.push('highly detailed, masterpiece');
+            document.getElementById('prompt-img-midjourney').textContent = '/imagine prompt: ' + mjParts.join(', ') + ` ${ratioToMJ[ratio]} --v 6 --q 2`;
+
+            let grokLines = [`Generate an image: ${desc}`, '', `Style: ${styleInfo.en}`];
+            if (moodInfo.en) grokLines.push(`Mood/Atmosphere: ${moodInfo.en}`);
+            grokLines.push(`Aspect ratio: ${ratio}`, '', 'Ultra high quality, sharp details, professional composition. Make sure the image is visually stunning and cohesive.');
+            document.getElementById('prompt-img-grok').textContent = grokLines.join('\n');
+        }
+
+        const vidMoodMap = {
+            none: '', cinematic: 'cinematic, film-like atmosphere',
+            documentary: 'documentary style, natural, authentic',
+            dreamy: 'dreamy, ethereal, soft focus, hazy',
+            dramatic: 'dramatic lighting, high contrast, intense',
+            peaceful: 'peaceful, serene, calm, gentle',
+            energetic: 'energetic, dynamic, fast-paced, vibrant',
+            dark: 'dark, moody, low-key lighting, shadows',
+            romantic: 'romantic, warm tones, soft light, intimate',
+            epic: 'epic, grand scale, majestic, sweeping',
+            retro: 'retro, vintage film grain, faded colors'
+        };
+
+        const qualityMap = {
+            '4k': { en: '4K Ultra HD', tag: '4K, ultra high definition, crisp details' },
+            '1080p': { en: '1080p Full HD', tag: '1080p, full HD, high quality' },
+            '720p': { en: '720p HD', tag: '720p, HD quality' }
+        };
+
+        function generateVideoPrompts(desc) {
+            const ratio = document.getElementById('vid-ratio').value;
+            const quality = document.getElementById('vid-quality').value;
+            const mood = document.getElementById('vid-mood').value;
+            const qualityInfo = qualityMap[quality];
+            const moodText = vidMoodMap[mood];
+
+            // --- Flow (descriptive, natural language) ---
+            let flowLines = [desc];
+            if (moodText) flowLines.push(moodText);
+            flowLines.push(`${ratio} aspect ratio, ${qualityInfo.tag}`);
+            flowLines.push('smooth camera movement, natural motion, consistent lighting, professional videography');
+            document.getElementById('prompt-vid-flow').textContent = flowLines.join(', ');
+
+            // --- Kling (structured, detail-oriented with camera instructions) ---
+            let klingLines = [];
+            klingLines.push(`Scene: ${desc}`);
+            klingLines.push('');
+            if (moodText) klingLines.push(`Atmosphere: ${moodText}`);
+            klingLines.push(`Resolution: ${qualityInfo.en}`);
+            klingLines.push(`Aspect ratio: ${ratio}`);
+            klingLines.push('');
+            klingLines.push('Camera: smooth tracking shot, steady movement, cinematic framing');
+            klingLines.push('Motion: natural and fluid, realistic physics, consistent speed');
+            klingLines.push('Lighting: consistent throughout, professional quality');
+            document.getElementById('prompt-vid-kling').textContent = klingLines.join('\n');
+
+            // --- Grok ---
+            let grokLines = [];
+            grokLines.push(`Generate a video: ${desc}`);
+            grokLines.push('');
+            if (moodText) grokLines.push(`Mood: ${moodText}`);
+            grokLines.push(`Resolution: ${qualityInfo.en}, Aspect ratio: ${ratio}`);
+            grokLines.push('');
+            grokLines.push('Cinematic quality, smooth natural motion, professional camera work. Ensure visual consistency and fluid transitions throughout the entire clip.');
+            document.getElementById('prompt-vid-grok').textContent = grokLines.join('\n');
+        }
+
+        const genreMap = {
+            // Pop
+            pop: 'Pop', kpop: 'K-Pop', dance_pop: 'Dance Pop', synth_pop: 'Synth Pop',
+            indie_pop: 'Indie Pop', dream_pop: 'Dream Pop',
+            // Rock
+            rock: 'Rock', alternative: 'Alternative Rock', indie_rock: 'Indie Rock',
+            punk: 'Punk Rock', metal: 'Heavy Metal', progressive_rock: 'Progressive Rock',
+            grunge: 'Grunge', post_rock: 'Post-Rock',
+            // Hip-Hop / R&B
+            hiphop: 'Hip-Hop', trap: 'Trap', rnb: 'R&B', neo_soul: 'Neo Soul',
+            boom_bap: 'Boom Bap', lo_fi_hiphop: 'Lo-Fi Hip-Hop',
+            // Electronic
+            edm: 'EDM', house: 'House', techno: 'Techno', trance: 'Trance',
+            dubstep: 'Dubstep', drum_and_bass: 'Drum and Bass', ambient: 'Ambient',
+            synthwave: 'Synthwave', chillwave: 'Chillwave', lo_fi: 'Lo-Fi',
+            // Jazz / Blues
+            jazz: 'Jazz', smooth_jazz: 'Smooth Jazz', bebop: 'Bebop', blues: 'Blues',
+            soul: 'Soul', funk: 'Funk',
+            // Classical
+            classical: 'Classical', orchestral: 'Orchestral', chamber: 'Chamber Music',
+            piano_solo: 'Piano Solo', cinematic_score: 'Cinematic Score',
+            // Acoustic / Folk
+            acoustic: 'Acoustic', folk: 'Folk', country: 'Country',
+            singer_songwriter: 'Singer-Songwriter', bossa_nova: 'Bossa Nova',
+            // World
+            reggae: 'Reggae', latin: 'Latin', afrobeat: 'Afrobeat',
+            celtic: 'Celtic', flamenco: 'Flamenco',
+            // Other
+            gospel: 'Gospel', reggaeton: 'Reggaeton', ska: 'Ska',
+            new_age: 'New Age', meditation: 'Meditation', game_ost: 'Game OST',
+            anime_ost: 'Anime OST'
+        };
+
+        const tempoMap = {
+            very_slow: { en: 'very slow tempo, ~60 BPM', bpm: '60' },
+            slow: { en: 'slow tempo, ~80 BPM', bpm: '80' },
+            medium: { en: 'medium tempo, ~110 BPM', bpm: '110' },
+            fast: { en: 'fast tempo, ~140 BPM', bpm: '140' },
+            very_fast: { en: 'very fast tempo, ~170+ BPM', bpm: '170' }
+        };
+
+        const audMoodMap = {
+            none: '', happy: 'happy, bright, uplifting',
+            sad: 'sad, emotional, melancholic', energetic: 'energetic, powerful, driving',
+            chill: 'chill, relaxed, laid-back', dark: 'dark, heavy, intense',
+            romantic: 'romantic, warm, tender', epic: 'epic, grand, majestic',
+            mysterious: 'mysterious, enigmatic, atmospheric',
+            nostalgic: 'nostalgic, retro, bittersweet',
+            aggressive: 'aggressive, intense, hard-hitting',
+            dreamy: 'dreamy, ethereal, floating', uplifting: 'uplifting, hopeful, inspiring'
+        };
+
+        function generateAudioPrompts(desc) {
+            const genre = document.getElementById('aud-genre').value;
+            const tempo = document.getElementById('aud-tempo').value;
+            const mood = document.getElementById('aud-mood').value;
+            const genreName = genreMap[genre];
+            const tempoInfo = tempoMap[tempo];
+            const moodText = audMoodMap[mood];
+
+            // --- SUNO prompt (style tags + description) ---
+            let sunoStyle = [genreName, tempoInfo.en];
+            if (moodText) sunoStyle.push(moodText);
+
+            let sunoLines = [];
+            sunoLines.push(`[Genre: ${genreName}]`);
+            sunoLines.push(`[Tempo: ${tempoInfo.bpm} BPM]`);
+            if (moodText) sunoLines.push(`[Mood: ${moodText}]`);
+            sunoLines.push('');
+            sunoLines.push(desc);
+            sunoLines.push('');
+            sunoLines.push(`Style: ${sunoStyle.join(', ')}`);
+            sunoLines.push('Professional studio quality, polished mix, mastered audio');
+
+            document.getElementById('prompt-aud-suno').textContent = sunoLines.join('\n');
         }
 
         function resetAll() {
@@ -754,6 +1167,9 @@
             textarea.value = '';
             textarea.placeholder = '원하는 이미지를 자세히 설명해주세요.\n\n예시: 해질녘 바다 위에 떠 있는 작은 나무 보트, 하늘은 주황색과 보라색 그라데이션, 잔잔한 파도 위에 빛 반사, 따뜻하고 평화로운 분위기';
 
+            // Reset type selector
+            selectType('image');
+
             // Reset dropdowns
             document.getElementById('style').value = 'realistic';
             document.getElementById('mood').value = 'none';
@@ -763,12 +1179,11 @@
             document.getElementById('accumulatedDesc').style.display = 'none';
             document.getElementById('accText').textContent = '';
 
-            // Hide results
-            document.getElementById('results').classList.remove('visible');
-            document.getElementById('prompt-nano').textContent = '';
-            document.getElementById('prompt-chatgpt').textContent = '';
-            document.getElementById('prompt-midjourney').textContent = '';
-            document.getElementById('prompt-grok').textContent = '';
+            // Hide all results
+            ['results-image', 'results-video', 'results-audio'].forEach(id => {
+                document.getElementById(id).classList.remove('visible');
+            });
+            document.querySelectorAll('.prompt-text').forEach(el => el.textContent = '');
 
             // Show toast
             const toast = document.getElementById('toast');
